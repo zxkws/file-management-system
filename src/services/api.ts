@@ -1,5 +1,5 @@
 // Create fetch wrapper with base URL
-const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3003/api';
+const baseURL = import.meta.env.VITE_API_URL || 'https://filemanagementsystem.lookli.nyc.mn/api';
 
 const api = {
   async request(method, url, data = null) {
