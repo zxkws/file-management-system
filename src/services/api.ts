@@ -28,7 +28,8 @@ const api = {
       
       // Response interceptor
       if (response.status === 401 || response.status === 403) {
-        window.location.href = '/login';
+        const current = window.location.href;
+        window.location.href = 'https://zxkws.nyc.mn/login?redirect=' + current;
       }
       
       if (!response.ok) {
