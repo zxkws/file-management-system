@@ -45,7 +45,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get('/files');
+      const data = await api.get('/files');
       setFiles(data);
     } catch (err) {
       setError('Failed to fetch files');
@@ -63,11 +63,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     formData.append('file', file);
     
     try {
-      const { data } = await api.post('/files/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const data = await api.post('/files/upload', formData);
       
       // Add the new file to the files array
       setFiles(prevFiles => [...prevFiles, data]);
@@ -97,7 +93,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const { data: updatedFile } = await api.put(`/files/${id}`, data);
+      const updatedFile = await api.put(`/files/${id}`, data);
       setFiles(prevFiles => 
         prevFiles.map(file => file.id === id ? { ...file, ...updatedFile } : file)
       );
@@ -113,7 +109,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get(`/files/${id}`);
+      const data = await api.get(`/files/${id}`);
       return data;
     } catch (err) {
       setError('Failed to fetch file');

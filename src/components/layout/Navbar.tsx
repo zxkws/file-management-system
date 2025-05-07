@@ -9,9 +9,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
-  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [profileOpen, setProfileOpen] = React.useState(false);
 
   return (
     <nav className={`sticky top-0 z-10 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} shadow-sm`}>
@@ -47,42 +45,7 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
               )}
             </button>
             
-            <div className="relative">
-              <button 
-                onClick={() => setProfileOpen(!profileOpen)} 
-                className="flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded-full"
-                aria-expanded={profileOpen}
-                aria-haspopup="true"
-              >
-                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white">
-                  <User className="h-5 w-5" />
-                </div>
-                <span className="ml-2 hidden md:block">{user?.name || 'User'}</span>
-              </button>
-              
-              {profileOpen && (
-                <div 
-                  className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ring-1 ring-black ring-opacity-5`}
-                  role="menu"
-                  aria-orientation="vertical"
-                >
-                  <div 
-                    className={`block px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}
-                    role="menuitem"
-                  >
-                    {user?.email}
-                  </div>
-                  <button 
-                    onClick={logout} 
-                    className={`flex w-full items-center px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                    role="menuitem"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </div>
+            
           </div>
         </div>
       </div>

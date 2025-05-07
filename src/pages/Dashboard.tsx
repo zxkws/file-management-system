@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
           <div className={`p-6 rounded-lg shadow-sm ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Recent Files</h2>
-              <a href="/files" className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center">
+              <a href="/file-management-system/files" className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center">
                 <span className="text-sm">View all</span>
                 <ArrowUpRight className="ml-1 h-4 w-4" />
               </a>
@@ -124,7 +124,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       
                       <a 
-                        href={`/files/${file.id}`}
+                        href={`/file-management-system/files/${file.id}`}
                         className={`px-3 py-1 text-xs font-medium rounded-full ${
                           theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                         }`}

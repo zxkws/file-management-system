@@ -1,10 +1,10 @@
 // Create fetch wrapper with base URL
-const baseURL = import.meta.env.VITE_API_URL || 'https://filemanagementsystem.lookli.nyc.mn/api';
+const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3003/api';
 
 const api = {
   async request(method, url, data = null) {
     // Request interceptor
-    let headers = {
+    let headers = (data instanceof FormData) ? {} : {
       'Content-Type': 'application/json',
     };
     
@@ -17,9 +17,10 @@ const api = {
       method: method.toUpperCase(),
       headers,
     };
+
     
     if (data) {
-      config.body = JSON.stringify(data);
+      config.body = (data instanceof FormData) ? data : JSON.stringify(data);
     }
     
     try {
@@ -34,8 +35,7 @@ const api = {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      return response.json();
+      return await response.json();
     } catch (error) {
       return Promise.reject(error);
     }

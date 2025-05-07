@@ -27,6 +27,7 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload({
+  debug: true,
   createParentPath: true,
   limits: { 
     fileSize: 50 * 1024 * 1024 // 50MB max file size
@@ -38,7 +39,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Serve static files from the uploads directory
-router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 const dbConfig = {
@@ -115,7 +116,7 @@ router.get('/api/files/:id',  async (req, res) => {
 });
 
 // Upload file
-router.post('/api/files/upload',  async (req, res) => {
+router.post('/api/files/upload', async (req, res) => {
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).json({ message: 'No files were uploaded' });
