@@ -4,7 +4,6 @@ const THIRD_PARTY_AUTH_API_URL = 'https://api.zxkws.nyc.mn/api/v1/user';
 
 
 export const authMiddleware = async (req, res, next) => {    
-    console.log(1111)
     const token = req.headers.authorization;
     const cookieStr = req.headers.cookie;
 
@@ -27,7 +26,6 @@ export const authMiddleware = async (req, res, next) => {
 
         if (data && !data.error) {
             req.user = data;
-            console.log(2222, data);
             next();
         } else {
             // 鉴权失败

@@ -33,10 +33,12 @@ app.use(fileUpload({
   },
 }));
 
-app.use(authMiddleware);
+
+const router = express.Router();
+router.use(authMiddleware);
 
 // Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 const dbConfig = {
@@ -54,10 +56,9 @@ let pool = mysql.createPool(dbConfig);
 let connection;
 
 
-// File routes
 
 // Get all files for user
-app.get('/api/files',  async (req, res) => {
+router.get('/api/files',  async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM files WHERE user_id = ? ORDER BY upload_date DESC',
@@ -84,7 +85,7 @@ app.get('/api/files',  async (req, res) => {
 });
 
 // Get single file
-app.get('/api/files/:id',  async (req, res) => {
+router.get('/api/files/:id',  async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM files WHERE id = ? AND user_id = ?',
@@ -114,7 +115,7 @@ app.get('/api/files/:id',  async (req, res) => {
 });
 
 // Upload file
-app.post('/api/files/upload',  async (req, res) => {
+router.post('/api/files/upload',  async (req, res) => {
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).json({ message: 'No files were uploaded' });
@@ -164,7 +165,7 @@ app.post('/api/files/upload',  async (req, res) => {
 });
 
 // Update file
-app.put('/api/files/:id',  async (req, res) => {
+router.put('/api/files/:id',  async (req, res) => {
   try {
     const { name } = req.body;
     
@@ -214,7 +215,7 @@ app.put('/api/files/:id',  async (req, res) => {
 });
 
 // Delete file
-app.delete('/api/files/:id',  async (req, res) => {
+router.delete('/api/files/:id',  async (req, res) => {
   try {
     // First check if file exists and belongs to user
     const [rows] = await pool.query(
@@ -281,7 +282,7 @@ const initializeDatabase = async () => {
     console.error('Error initializing database:', error);
   }
 };
-
+app.use('/', router);
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
