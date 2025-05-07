@@ -26,7 +26,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <FileProvider>
-          <Router>
+          <Router basename='file-management-system'>
             <Routes>
               <Route path="/" element={
                 <ProtectedRoute>
