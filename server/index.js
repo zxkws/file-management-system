@@ -27,7 +27,6 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload({
-  debug: true,
   createParentPath: true,
   limits: { 
     fileSize: 50 * 1024 * 1024 // 50MB max file size
@@ -123,6 +122,7 @@ router.post('/api/files/upload', async (req, res) => {
     }
     
     const file = req.files.file;
+    file.name = Buffer.from(file.name, 'latin1').toString('utf8');
     const userId = req.user.userId;
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
