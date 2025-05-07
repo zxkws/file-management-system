@@ -16,7 +16,6 @@ const api = {
     const config = {
       method: method.toUpperCase(),
       headers,
-      credentials: 'include', // Important for cookie-based auth
     };
     
     if (data) {
