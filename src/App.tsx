@@ -16,10 +16,10 @@ import { ThemeProvider } from './contexts/ThemeContext';
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, login } = useAuth();
 
-  if (!isAuthenticated) {
-    login();
-    return;
-  }
+  // if (!isAuthenticated) {
+  //   login();
+  //   return;
+  // }
   
   return <>{children}</>;
 };
