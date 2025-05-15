@@ -10,6 +10,7 @@ import FileDetails from './pages/FileDetails';
 import NotFound from './pages/NotFound';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FileProvider } from './contexts/FileContext';
+import { FolderProvider } from './contexts/FolderContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 // Protected route component
@@ -29,23 +30,25 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <FileProvider>
-          <Router basename='file-management-system'>
-            <Routes>
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Dashboard />} />
-                <Route path="upload" element={<Upload />} />
-                <Route path="files" element={<Files />} />
-                <Route path="folders" element={<Folders />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="files/:fileId" element={<FileDetails />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Router>
+          <FolderProvider>
+            <Router basename='file-management-system'>
+              <Routes>
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Dashboard />} />
+                  <Route path="upload" element={<Upload />} />
+                  <Route path="files" element={<Files />} />
+                  <Route path="folders" element={<Folders />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="files/:fileId" element={<FileDetails />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Router>
+          </FolderProvider>
         </FileProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -33,7 +33,6 @@ app.use(fileUpload({
   },
 }));
 
-
 const router = express.Router();
 router.use(authMiddleware);
 
@@ -55,66 +54,118 @@ const dbConfig = {
 let pool = mysql.createPool(dbConfig);
 let connection;
 
-
-
-// Get all files for user
-router.get('/api/files',  async (req, res) => {
+// Folders API endpoints
+router.get('/api/folders', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT * FROM files WHERE user_id = ? ORDER BY upload_date DESC',
+      'SELECT * FROM folders WHERE user_id = ? ORDER BY created_at DESC',
       [req.user.userId]
     );
     
-    // Transform database rows to API response format
-    const files = rows.map(file => ({
-      id: file.id,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: `${req.protocol}://${req.get('host')}/uploads/${file.path}`,
-      uploadDate: file.upload_date,
-      lastModified: file.last_modified,
-      userId: file.user_id
+    // Get file count for each folder
+    const foldersWithCounts = await Promise.all(rows.map(async folder => {
+      const [fileCount] = await pool.query(
+        'SELECT COUNT(*) as count FROM files WHERE folder_id = ?',
+        [folder.id]
+      );
+      
+      return {
+        ...folder,
+        filesCount: fileCount[0].count
+      };
     }));
     
-    res.json(files);
+    res.json(foldersWithCounts);
   } catch (error) {
-    console.error('Error fetching files:', error);
-    res.status(500).json({ message: 'Failed to fetch files' });
+    console.error('Error fetching folders:', error);
+    res.status(500).json({ message: 'Failed to fetch folders' });
   }
 });
 
-// Get single file
-router.get('/api/files/:id',  async (req, res) => {
+router.post('/api/folders', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT * FROM files WHERE id = ? AND user_id = ?',
-      [req.params.id, req.user.userId]
+    const { name } = req.body;
+    const userId = req.user.userId;
+    
+    const [result] = await pool.query(
+      'INSERT INTO folders (id, name, user_id, created_at) VALUES (?, ?, ?, NOW())',
+      [`folder_${Date.now()}`, name, userId]
     );
     
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+    const [folder] = await pool.query(
+      'SELECT * FROM folders WHERE id = ?',
+      [result.insertId]
+    );
     
-    const file = rows[0];
-    
-    res.json({
-      id: file.id,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: `${req.protocol}://${req.get('host')}/uploads/${file.path}`,
-      uploadDate: file.upload_date,
-      lastModified: file.last_modified,
-      userId: file.user_id
-    });
+    res.status(201).json(folder[0]);
   } catch (error) {
-    console.error('Error fetching file:', error);
-    res.status(500).json({ message: 'Failed to fetch file' });
+    console.error('Error creating folder:', error);
+    res.status(500).json({ message: 'Failed to create folder' });
   }
 });
 
-// Upload file
+router.put('/api/folders/:id', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const folderId = req.params.id;
+    const userId = req.user.userId;
+    
+    await pool.query(
+      'UPDATE folders SET name = ? WHERE id = ? AND user_id = ?',
+      [name, folderId, userId]
+    );
+    
+    const [folder] = await pool.query(
+      'SELECT * FROM folders WHERE id = ?',
+      [folderId]
+    );
+    
+    res.json(folder[0]);
+  } catch (error) {
+    console.error('Error updating folder:', error);
+    res.status(500).json({ message: 'Failed to update folder' });
+  }
+});
+
+router.delete('/api/folders/:id', async (req, res) => {
+  try {
+    const folderId = req.params.id;
+    const userId = req.user.userId;
+    
+    // Get all files in the folder
+    const [files] = await pool.query(
+      'SELECT * FROM files WHERE folder_id = ? AND user_id = ?',
+      [folderId, userId]
+    );
+    
+    // Delete all files in the folder from filesystem
+    for (const file of files) {
+      const filePath = path.join(uploadsDir, file.path);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+    
+    // Delete all files in the folder from database
+    await pool.query(
+      'DELETE FROM files WHERE folder_id = ? AND user_id = ?',
+      [folderId, userId]
+    );
+    
+    // Delete the folder
+    await pool.query(
+      'DELETE FROM folders WHERE id = ? AND user_id = ?',
+      [folderId, userId]
+    );
+    
+    res.json({ message: 'Folder deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting folder:', error);
+    res.status(500).json({ message: 'Failed to delete folder' });
+  }
+});
+
+// Update file upload to support folders
 router.post('/api/files/upload', async (req, res) => {
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
@@ -122,25 +173,22 @@ router.post('/api/files/upload', async (req, res) => {
     }
     
     const file = req.files.file;
+    const folderId = req.body.folderId || null;
     file.name = Buffer.from(file.name, 'latin1').toString('utf8');
     const userId = req.user.userId;
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
     const filePath = path.join(uploadsDir, fileName);
     
-    // Move file to uploads directory
     await file.mv(filePath);
     
-    // Generate a unique ID for the file
     const fileId = `file_${timestamp}`;
     
-    // Save file metadata to database
-    const [result] = await pool.query(
-      'INSERT INTO files (id, name, type, size, path, user_id, upload_date, last_modified) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
-      [fileId, file.name, file.mimetype, file.size, fileName, userId]
+    await pool.query(
+      'INSERT INTO files (id, name, type, size, path, folder_id, user_id, upload_date, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+      [fileId, file.name, file.mimetype, file.size, fileName, folderId, userId]
     );
     
-    // Get the newly created file
     const [rows] = await pool.query('SELECT * FROM files WHERE id = ?', [fileId]);
     
     if (rows.length === 0) {
@@ -157,7 +205,8 @@ router.post('/api/files/upload', async (req, res) => {
       url: `${req.protocol}://${req.get('host')}/uploads/${newFile.path}`,
       uploadDate: newFile.upload_date,
       lastModified: newFile.last_modified,
-      userId: newFile.user_id
+      userId: newFile.user_id,
+      folderId: newFile.folder_id
     });
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -165,95 +214,12 @@ router.post('/api/files/upload', async (req, res) => {
   }
 });
 
-// Update file
-router.put('/api/files/:id',  async (req, res) => {
-  try {
-    const { name } = req.body;
-    
-    if (!name) {
-      return res.status(400).json({ message: 'Name is required' });
-    }
-    
-    // First check if file exists and belongs to user
-    const [rows] = await pool.query(
-      'SELECT * FROM files WHERE id = ? AND user_id = ?',
-      [req.params.id, req.user.userId]
-    );
-    
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'File not found' });
-    }
-    
-    // Update file metadata
-    await pool.query(
-      'UPDATE files SET name = ?, last_modified = NOW() WHERE id = ?',
-      [name, req.params.id]
-    );
-    
-    // Get updated file
-    const [updatedRows] = await pool.query('SELECT * FROM files WHERE id = ?', [req.params.id]);
-    
-    if (updatedRows.length === 0) {
-      return res.status(500).json({ message: 'Failed to update file' });
-    }
-    
-    const updatedFile = updatedRows[0];
-    
-    res.json({
-      id: updatedFile.id,
-      name: updatedFile.name,
-      type: updatedFile.type,
-      size: updatedFile.size,
-      url: `${req.protocol}://${req.get('host')}/uploads/${updatedFile.path}`,
-      uploadDate: updatedFile.upload_date,
-      lastModified: updatedFile.last_modified,
-      userId: updatedFile.user_id
-    });
-  } catch (error) {
-    console.error('Error updating file:', error);
-    res.status(500).json({ message: 'Failed to update file' });
-  }
-});
-
-// Delete file
-router.delete('/api/files/:id',  async (req, res) => {
-  try {
-    // First check if file exists and belongs to user
-    const [rows] = await pool.query(
-      'SELECT * FROM files WHERE id = ? AND user_id = ?',
-      [req.params.id, req.user.userId]
-    );
-    
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'File not found' });
-    }
-    
-    const file = rows[0];
-    
-    // Delete file from filesystem
-    const filePath = path.join(uploadsDir, file.path);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-    
-    // Delete file metadata from database
-    await pool.query('DELETE FROM files WHERE id = ?', [req.params.id]);
-    
-    res.json({ message: 'File deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    res.status(500).json({ message: 'Failed to delete file' });
-  }
-});
-
 // Initialize database with required tables
 const initializeDatabase = async () => {
   try {
-
-    try{
+    try {
       connection = await pool.getConnection();
-    }
-    catch(err){
+    } catch(err) {
       const newConfig = {...dbConfig};
       delete newConfig.database;
       pool = mysql.createPool(newConfig);
@@ -263,6 +229,17 @@ const initializeDatabase = async () => {
       pool = mysql.createPool(dbConfig);
     }
 
+    // Create folders table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS folders (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        created_at DATETIME NOT NULL,
+        INDEX user_id_idx (user_id)
+      )
+    `);
+
     // Create files table if it doesn't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS files (
@@ -271,10 +248,13 @@ const initializeDatabase = async () => {
         type VARCHAR(255) NOT NULL,
         size BIGINT NOT NULL,
         path VARCHAR(255) NOT NULL,
+        folder_id VARCHAR(255),
         user_id VARCHAR(255) NOT NULL,
         upload_date DATETIME NOT NULL,
         last_modified DATETIME NOT NULL,
-        INDEX user_id_idx (user_id)
+        INDEX user_id_idx (user_id),
+        INDEX folder_id_idx (folder_id),
+        FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL
       )
     `);
     
@@ -283,7 +263,9 @@ const initializeDatabase = async () => {
     console.error('Error initializing database:', error);
   }
 };
+
 app.use('/', router);
+
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);

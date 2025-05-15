@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { read, utils } from 'xlsx';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ReactPlayer from 'react-player';
 
 interface FilePreviewProps {
   file: FileType;
@@ -115,13 +116,13 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file }) => {
     if (isVideo) {
       return (
         <div className="flex justify-center">
-          <video 
-            src={file.url} 
-            controls 
+          <ReactPlayer
+            url={file.url}
+            controls
+            width="100%"
+            height="auto"
             className="max-w-full max-h-[70vh]"
-          >
-            Your browser does not support the video tag.
-          </video>
+          />
         </div>
       );
     }
