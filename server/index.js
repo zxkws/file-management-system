@@ -22,9 +22,21 @@ if (!fs.existsSync(uploadsDir)) {
 // Initialize express app
 const app = express();
 const PORT = process.env.PORT || 3003;
-
+const allowedOrigins = [
+  'https://zxkws.nyc.mn',
+];
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      // 否则拒绝跨域请求
+      callback(null, false);
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(fileUpload({
   createParentPath: true,
