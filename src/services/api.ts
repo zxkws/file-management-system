@@ -16,6 +16,7 @@ const api = {
     const config = {
       method: method.toUpperCase(),
       headers,
+      credentials: "include",
     };
 
     
